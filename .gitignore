@@ -1,0 +1,5 @@
+.pytest_cache
+.DS_Store
+.env
+.idea/
+__pycache__/
