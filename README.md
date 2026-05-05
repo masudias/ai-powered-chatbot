@@ -194,6 +194,16 @@ The `--reload` flag auto-restarts on code changes (remove in production).
 
 ---
 
+### 4e. Run the chat widget in localhost browser
+
+```bash
+python3 -m http.server 8080
+```
+
+Then open `http://localhost:8080/chatwoot.html` for accessing the widget. 
+
+### Make sure the Chatwoot server is running inside the Docker environment
+
 ## 5. How It Works
 
 ### Normal flow
