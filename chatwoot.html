@@ -1,26 +1,781 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Chatwoot Test</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Priyo Pay Support</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #1a1365;
+      --navy-light:  #231b80;
+      --gold:        #F5C518;
+      --gold-muted:  rgba(245,197,24,0.65);
+      --white:       #FFFFFF;
+      --agent-bg:    #F0F0F6;
+      --online:      #44CE4B;
+      --text-dark:   #1a1a2e;
+      --text-gray:   #8a8aaa;
+      --border:      #e8e8f0;
+    }
+
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    /* ── Launcher ─────────────────────────────────── */
+    #priyo-launcher {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      width: 62px; height: 62px;
+      border-radius: 50%;
+      background: var(--navy);
+      border: 2px solid rgba(245,197,24,.35);
+      box-shadow: 0 4px 22px rgba(26,19,101,.55);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+      transition: transform .2s;
+      user-select: none;
+    }
+    #priyo-launcher:hover { transform: scale(1.06); }
+
+    .l-logo { font-weight: 900; font-size: 21px; letter-spacing: -2px; color: var(--gold); line-height: 1; }
+    .l-dot  {
+      position: absolute; bottom: 5px; right: 5px;
+      width: 13px; height: 13px;
+      border-radius: 50%; background: var(--online);
+      border: 2px solid #fff;
+    }
+
+    /* ── Widget shell ─────────────────────────────── */
+    #priyo-widget {
+      position: fixed;
+      bottom: 100px; right: 24px;
+      width: 375px; height: 600px;
+      max-height: calc(100vh - 120px);
+      background: var(--white);
+      border-radius: 16px;
+      box-shadow: 0 10px 48px rgba(0,0,0,.28);
+      z-index: 9998;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    #priyo-widget.hidden {
+      opacity: 0;
+      transform: translateY(14px) scale(.97);
+      pointer-events: none;
+    }
+
+    /* ── Nav header ───────────────────────────────── */
+    .w-nav {
+      background: var(--navy);
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .nav-home {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.38);
+      background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; flex-shrink: 0;
+      transition: border-color .15s;
+    }
+    .nav-home:hover { border-color: rgba(255,255,255,.75); }
+    .nav-home svg { width: 16px; height: 16px; }
+
+    .nav-tabs {
+      flex: 1;
+      display: flex; gap: 2px;
+      background: rgba(0,0,0,.22);
+      border-radius: 22px;
+      padding: 3px;
+    }
+    .nav-tab {
+      flex: 1; padding: 6px 10px;
+      border: none; border-radius: 19px;
+      background: transparent;
+      color: var(--gold-muted);
+      font-size: 12.5px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+    .nav-tab.active {
+      background: rgba(255,255,255,.16);
+      color: var(--gold);
+    }
+    .nav-tab svg { width: 12px; height: 12px; }
+
+    .nav-chevron {
+      width: 28px; height: 28px; border: none;
+      background: transparent; cursor: pointer;
+      color: var(--gold); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-chevron svg { width: 20px; height: 20px; }
+
+    /* ── Sub-headers ──────────────────────────────── */
+    .sub-brand {
+      background: var(--navy);
+      padding: 14px 16px 16px;
+      display: flex; align-items: center; gap: 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      flex-shrink: 0;
+    }
+    .brand-circle {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: var(--navy-light);
+      border: 2px solid rgba(245,197,24,.38);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; letter-spacing: -2px;
+      color: var(--gold); flex-shrink: 0;
+    }
+    .brand-name  { color: var(--gold); font-size: 18px; font-weight: 700; }
+    .brand-sub   { color: var(--gold); font-size: 13px; opacity: .82; margin-top: 2px; }
+
+    .sub-articles {
+      background: var(--navy);
+      padding: 10px 14px 14px;
+      flex-shrink: 0;
+    }
+    .art-title {
+      color: var(--gold); font-size: 17px; font-weight: 700;
+      text-align: center; margin-bottom: 10px;
+    }
+    .search-wrap {
+      background: #fff; border-radius: 24px;
+      padding: 9px 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .search-wrap svg { width: 15px; height: 15px; color: #bbb; flex-shrink: 0; }
+    .search-wrap input {
+      border: none; outline: none; flex: 1;
+      font-size: 13.5px; color: var(--text-dark); background: transparent;
+    }
+    .search-wrap input::placeholder { color: #c0c0cc; }
+
+    .sub-agent {
+      background: var(--navy);
+      padding: 11px 14px;
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0;
+    }
+    .agent-av-wrap { position: relative; flex-shrink: 0; }
+    .agent-av {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: #dde; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .agent-av svg { width: 22px; height: 22px; }
+    .agent-dot {
+      position: absolute; bottom: 1px; right: 1px;
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--online); border: 2px solid var(--navy);
+    }
+    .agent-name { flex: 1; color: #fff; font-size: 13.5px; font-weight: 600; }
+    .agent-chev {
+      background: none; border: none; cursor: pointer;
+      color: var(--gold); display: flex; align-items: center;
+    }
+    .agent-chev svg { width: 18px; height: 18px; }
+
+    /* ── Content area ─────────────────────────────── */
+    .w-body {
+      flex: 1; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    .screen { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+    .screen.active { display: flex; }
+
+    /* ── Home screen ──────────────────────────────── */
+    #s-home { padding: 18px 14px; gap: 10px; }
+
+    .section-title {
+      font-size: 13.5px; font-weight: 700;
+      color: var(--text-dark); margin-bottom: 2px;
+    }
+
+    .action-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px; cursor: pointer;
+      transition: background .14s, box-shadow .14s;
+      user-select: none;
+    }
+    .action-card:hover { background: #f7f7fc; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .card-icon { width: 26px; color: var(--navy); flex-shrink: 0; display: flex; align-items: center; }
+    .card-icon svg { width: 22px; height: 22px; }
+    .card-lbl { flex: 1; font-size: 14px; font-weight: 600; color: var(--text-dark); }
+    .card-arr { color: var(--text-gray); display: flex; }
+    .card-arr svg { width: 16px; height: 16px; }
+
+    .recent-list {
+      border: 1.5px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .recent-link {
+      display: block; padding: 11px 14px;
+      font-size: 13px; color: var(--text-dark);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      transition: background .13s;
+    }
+    .recent-link:last-child { border-bottom: none; }
+    .recent-link:hover { background: #f5f5fb; }
+
+    /* ── Articles screen ──────────────────────────── */
+    #s-articles { padding: 0; }
+    .art-list { padding: 6px 0; }
+
+    .art-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; text-decoration: none; color: inherit;
+      transition: background .13s;
+    }
+    .art-item:hover { background: #f9f9fc; }
+    .art-ico {
+      width: 34px; height: 34px; flex-shrink: 0;
+      background: var(--navy); border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .art-ico svg { width: 16px; height: 16px; color: #fff; }
+    .art-body { flex: 1; min-width: 0; }
+    .art-ttl {
+      font-size: 13.5px; font-weight: 700;
+      color: var(--text-dark); line-height: 1.35;
+      margin-bottom: 3px;
+    }
+    .art-exc {
+      font-size: 12px; color: var(--text-gray);
+      line-height: 1.45;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .art-arr { flex-shrink: 0; color: var(--text-gray); margin-top: 3px; display: flex; }
+    .art-arr svg { width: 15px; height: 15px; }
+
+    /* ── Chat screen ──────────────────────────────── */
+    #s-chat { overflow: hidden; }
+
+    .msgs-scroll {
+      flex: 1; overflow-y: auto;
+      padding: 14px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .msgs-scroll::-webkit-scrollbar { width: 4px; }
+    .msgs-scroll::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+    .date-sep {
+      text-align: center; font-size: 11px;
+      color: var(--text-gray); padding: 4px 0 6px;
+    }
+
+    .msg-row {
+      display: flex; align-items: flex-end; gap: 7px;
+      max-width: 82%;
+    }
+    .msg-row.user  { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-row.agent { align-self: flex-start; }
+
+    .msg-av {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #dde; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .msg-av svg { width: 15px; height: 15px; }
+
+    .msg-bub {
+      padding: 9px 13px;
+      border-radius: 18px;
+      font-size: 13.5px; line-height: 1.45;
+      word-break: break-word;
+    }
+    .msg-row.user  .msg-bub {
+      background: var(--navy); color: #FFE082;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-row.agent .msg-bub {
+      background: var(--agent-bg); color: var(--text-dark);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* ── Compose area ─────────────────────────────── */
+    .compose {
+      border-top: 1px solid var(--border);
+      padding: 10px 12px 11px;
+      flex-shrink: 0; background: #fff;
+    }
+    .compose-ta {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 12px 5px;
+      font-size: 13.5px; font-family: inherit;
+      resize: none; outline: none;
+      min-height: 42px; max-height: 100px;
+      line-height: 1.45; color: var(--text-dark);
+      transition: border-color .15s;
+    }
+    .compose-ta:focus { border-color: var(--navy); }
+    .compose-ta::placeholder { color: #c0c0cc; }
+
+    .compose-bar {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-top: 6px; padding: 0 2px;
+    }
+    .c-tools { display: flex; gap: 2px; }
+    .c-tool {
+      width: 32px; height: 32px; border: none;
+      background: transparent; cursor: pointer;
+      border-radius: 8px; display: flex;
+      align-items: center; justify-content: center;
+      color: var(--text-gray);
+      transition: background .13s;
+    }
+    .c-tool:hover { background: #f0f0f6; color: var(--navy); }
+    .c-tool svg { width: 17px; height: 17px; }
+
+    .c-send {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--navy); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; transition: background .13s, transform .1s;
+    }
+    .c-send:hover  { background: var(--navy-light); }
+    .c-send:active { transform: scale(.93); }
+    .c-send svg { width: 15px; height: 15px; margin-left: 1px; }
+
+    /* ── Utilities ────────────────────────────────── */
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
-  <h1>Testing Chatwoot Widget</h1>
 
-  <script>
-  (function(d,t) {
-    var BASE_URL="http://0.0.0.0:3000";
-    var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-    g.src=BASE_URL+"/packs/js/sdk.js";
-    g.async = true;
-    s.parentNode.insertBefore(g,s);
-    g.onload=function(){
-      window.chatwootSDK.run({
-        websiteToken: 'dxAU45jcxTPA4anpL9vEZRA1',
-        baseUrl: BASE_URL
-      })
+<!-- ── Launcher ───────────────────────────────────── -->
+<div id="priyo-launcher" title="Chat with Priyo">
+  <div class="l-logo">&gt;P</div>
+  <div class="l-dot"></div>
+</div>
+
+<!-- ── Widget ─────────────────────────────────────── -->
+<div id="priyo-widget" class="hidden">
+
+  <!-- Nav bar -->
+  <div class="w-nav">
+    <button class="nav-home" id="btn-home" title="Home">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    </button>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-msg">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        Messages
+      </button>
+      <button class="nav-tab" id="tab-art">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+        Articles
+      </button>
+    </div>
+    <button class="nav-chevron" id="btn-close" title="Close">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+    </button>
+  </div>
+
+  <!-- Sub-header: brand (home) -->
+  <div id="sub-brand" class="sub-brand">
+    <div class="brand-circle">&gt;P</div>
+    <div>
+      <div class="brand-name">Priyo Inc.</div>
+      <div class="brand-sub">How can we help?</div>
+    </div>
+  </div>
+
+  <!-- Sub-header: articles search -->
+  <div id="sub-articles" class="sub-articles hidden">
+    <div class="art-title">How can we help you?</div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" placeholder="Search our help center..." id="art-search">
+    </div>
+  </div>
+
+  <!-- Sub-header: agent (chat) -->
+  <div id="sub-agent" class="sub-agent hidden">
+    <div class="agent-av-wrap">
+      <div class="agent-av">
+        <svg viewBox="0 0 24 24" fill="#aab"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+      </div>
+      <div class="agent-dot"></div>
+    </div>
+    <span class="agent-name">Madhuri from Priyo Inc.</span>
+    <button class="agent-chev">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="w-body">
+
+    <!-- Home screen -->
+    <div id="s-home" class="screen active">
+      <div class="section-title">Get help</div>
+
+      <div class="action-card" id="card-msg">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        </div>
+        <span class="card-lbl">Send a message</span>
+        <div class="card-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+      </div>
+
+      <div class="action-card" id="card-art">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+        </div>
+        <span class="card-lbl">Read our help articles</span>
+        <div class="card-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+      </div>
+
+      <div class="recent-list">
+        <a href="#" class="recent-link" onclick="return false">How to withdraw payments from Fiverr to Priy...</a>
+        <a href="#" class="recent-link" onclick="return false">International Wire / SWIFT Information</a>
+        <a href="#" class="recent-link" onclick="return false">How to withdraw money from my Priyo Pay ac...</a>
+      </div>
+    </div>
+
+    <!-- Articles screen -->
+    <div id="s-articles" class="screen">
+      <div class="art-list">
+
+        <a href="#" class="art-item" onclick="return false">
+          <div class="art-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></div>
+          <div class="art-body">
+            <div class="art-ttl">How to withdraw payments from Fiverr to Priyo Pay?</div>
+            <div class="art-exc">How to withdraw payments from Fiverr to Priyo Pay Step by Step Guide.</div>
+          </div>
+          <div class="art-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+        </a>
+
+        <a href="#" class="art-item" onclick="return false">
+          <div class="art-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></div>
+          <div class="art-body">
+            <div class="art-ttl">International Wire / SWIFT Information</div>
+            <div class="art-exc">Anyone can send dollars to your Priyo Pay account from outside the USA via international wire transfer.</div>
+          </div>
+          <div class="art-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+        </a>
+
+        <a href="#" class="art-item" onclick="return false">
+          <div class="art-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></div>
+          <div class="art-body">
+            <div class="art-ttl">How to withdraw money from my Priyo Pay account to Bangladeshi Bank account?</div>
+            <div class="art-exc">You can easily withdraw your funds from your Priyo Pay account to your Bangladeshi Bank account.</div>
+          </div>
+          <div class="art-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+        </a>
+
+        <a href="#" class="art-item" onclick="return false">
+          <div class="art-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></div>
+          <div class="art-body">
+            <div class="art-ttl">What is Priyo Pay?</div>
+            <div class="art-exc">Priyo Pay is a fintech company providing US bank accounts, Mastercard debit cards, and payment services.</div>
+          </div>
+          <div class="art-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+        </a>
+
+        <a href="#" class="art-item" onclick="return false">
+          <div class="art-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></div>
+          <div class="art-body">
+            <div class="art-ttl">How to create a USD Bank Account?</div>
+            <div class="art-exc">Create a free USD bank account with Priyo Pay in minutes. No credit check required.</div>
+          </div>
+          <div class="art-arr"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- Chat screen -->
+    <div id="s-chat" class="screen">
+      <div class="msgs-scroll" id="msgs"></div>
+      <div class="compose">
+        <textarea class="compose-ta" id="compose" placeholder="Compose your message..." rows="1"></textarea>
+        <div class="compose-bar">
+          <div class="c-tools">
+            <button class="c-tool" title="Emoji">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="2.5"/>
+                <line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="2.5"/>
+              </svg>
+            </button>
+            <button class="c-tool" title="Attach file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+            <button class="c-tool" title="Audio">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 8v8M6 5v14M9 8v8M12 3v18M15 8v8M18 5v14M21 8v8"/>
+              </svg>
+            </button>
+          </div>
+          <button class="c-send" id="btn-send" title="Send">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /w-body -->
+</div><!-- /priyo-widget -->
+
+<script>
+(function () {
+  const BASE      = 'http://0.0.0.0:3000';
+  const TOKEN     = 'dxAU45jcxTPA4anpL9vEZRA1';
+  const CID_KEY   = 'priyo_cid';
+  const VID_KEY   = 'priyo_vid';
+
+  /* ── state ── */
+  let open       = false;
+  let screen     = 'home';   // 'home' | 'articles' | 'chat'
+  let contactId  = null;     // source_id (UUID string)
+  let convId     = null;     // conversation numeric id
+  let lastMsgId  = 0;
+  let pollTimer  = null;
+  let sending    = false;
+
+  /* ── elements ── */
+  const launcher   = document.getElementById('priyo-launcher');
+  const widget     = document.getElementById('priyo-widget');
+  const btnHome    = document.getElementById('btn-home');
+  const tabMsg     = document.getElementById('tab-msg');
+  const tabArt     = document.getElementById('tab-art');
+  const btnClose   = document.getElementById('btn-close');
+  const cardMsg    = document.getElementById('card-msg');
+  const cardArt    = document.getElementById('card-art');
+  const btnSend    = document.getElementById('btn-send');
+  const compose    = document.getElementById('compose');
+  const msgsEl     = document.getElementById('msgs');
+  const subBrand   = document.getElementById('sub-brand');
+  const subArt     = document.getElementById('sub-articles');
+  const subAgent   = document.getElementById('sub-agent');
+  const sHome      = document.getElementById('s-home');
+  const sArticles  = document.getElementById('s-articles');
+  const sChat      = document.getElementById('s-chat');
+
+  /* ── session persistence ── */
+  function loadSession() {
+    contactId = localStorage.getItem(CID_KEY) || null;
+    convId    = parseInt(localStorage.getItem(VID_KEY)) || null;
+  }
+  function saveSession() {
+    if (contactId) localStorage.setItem(CID_KEY, contactId);
+    if (convId)    localStorage.setItem(VID_KEY, String(convId));
+  }
+  function clearSession() {
+    contactId = null; convId = null; lastMsgId = 0;
+    localStorage.removeItem(CID_KEY);
+    localStorage.removeItem(VID_KEY);
+  }
+
+  /* ── API helpers ── */
+  async function post(path, body = {}) {
+    const r = await fetch(BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error('API ' + r.status);
+    return r.json();
+  }
+  async function get(path) {
+    const r = await fetch(BASE + path);
+    if (!r.ok) throw new Error('API ' + r.status);
+    return r.json();
+  }
+
+  async function ensureContact() {
+    if (contactId) return;
+    const d = await post(`/public/api/v1/inboxes/${TOKEN}/contacts`, { name: 'Guest' });
+    contactId = d.source_id || String(d.id);
+    saveSession();
+  }
+  async function ensureConversation() {
+    await ensureContact();
+    if (convId) return;
+    const d = await post(`/public/api/v1/inboxes/${TOKEN}/contacts/${contactId}/conversations`, {});
+    convId = d.id;
+    saveSession();
+  }
+  async function apiSend(content) {
+    await ensureConversation();
+    return post(
+      `/public/api/v1/inboxes/${TOKEN}/contacts/${contactId}/conversations/${convId}/messages`,
+      { content }
+    );
+  }
+  async function apiMessages() {
+    if (!contactId || !convId) return [];
+    const d = await get(
+      `/public/api/v1/inboxes/${TOKEN}/contacts/${contactId}/conversations/${convId}/messages`
+    );
+    return d.payload || d || [];
+  }
+
+  /* ── render helpers ── */
+  function dateLine(ts) {
+    return new Date(ts * 1000).toLocaleDateString('en-US', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+  }
+
+  function renderMsgs(list) {
+    if (!list.length) return;
+    let seenDate = null;
+    let added    = false;
+
+    list.forEach(m => {
+      if (!m.content || m.id <= lastMsgId) return;
+      added = true;
+
+      const dl = dateLine(m.created_at);
+      if (dl !== seenDate) {
+        const sep = document.createElement('div');
+        sep.className = 'date-sep';
+        sep.textContent = dl;
+        msgsEl.appendChild(sep);
+        seenDate = dl;
+      }
+
+      const isUser = m.message_type === 0;
+      const row    = document.createElement('div');
+      row.className = 'msg-row ' + (isUser ? 'user' : 'agent');
+
+      if (!isUser) {
+        const av = document.createElement('div');
+        av.className = 'msg-av';
+        av.innerHTML = `<svg viewBox="0 0 24 24" fill="#aab"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+        row.appendChild(av);
+      }
+
+      const bub = document.createElement('div');
+      bub.className = 'msg-bub';
+      bub.textContent = m.content;
+      row.appendChild(bub);
+
+      msgsEl.appendChild(row);
+      lastMsgId = m.id;
+    });
+
+    if (added) msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  /* ── polling ── */
+  async function poll() {
+    try { renderMsgs(await apiMessages()); } catch (_) { /* ignore */ }
+  }
+  function startPoll() { if (!pollTimer) { poll(); pollTimer = setInterval(poll, 3000); } }
+  function stopPoll()  { if (pollTimer)  { clearInterval(pollTimer); pollTimer = null; } }
+
+  /* ── screen switching ── */
+  function goScreen(name) {
+    screen = name;
+    sHome.classList.toggle('active', name === 'home');
+    sArticles.classList.toggle('active', name === 'articles');
+    sChat.classList.toggle('active', name === 'chat');
+    subBrand.classList.toggle('hidden', name !== 'home');
+    subArt.classList.toggle('hidden', name !== 'articles');
+    subAgent.classList.toggle('hidden', name !== 'chat');
+    tabMsg.classList.toggle('active', name === 'home' || name === 'chat');
+    tabArt.classList.toggle('active', name === 'articles');
+    if (name === 'chat') startPoll(); else stopPoll();
+  }
+
+  /* ── open chat (creates session if needed) ── */
+  async function openChat() {
+    goScreen('chat');
+    try {
+      await ensureConversation();
+      await poll();
+    } catch (_) {
+      clearSession();
+      try { await ensureConversation(); await poll(); } catch (__) { /* offline */ }
     }
-  })(document,"script");
-  </script>
+  }
+
+  /* ── send ── */
+  async function handleSend() {
+    const text = compose.value.trim();
+    if (!text || sending) return;
+    sending = true;
+    compose.value = '';
+    compose.style.height = 'auto';
+
+    /* optimistic bubble */
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    const bub = document.createElement('div');
+    bub.className = 'msg-bub';
+    bub.textContent = text;
+    row.appendChild(bub);
+    msgsEl.appendChild(row);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+
+    try {
+      const m = await apiSend(text);
+      if (m?.id) lastMsgId = m.id;
+    } catch (_) { /* ignore */ }
+    sending = false;
+  }
+
+  /* ── toggle widget ── */
+  function toggle() {
+    open = !open;
+    widget.classList.toggle('hidden', !open);
+    if (!open) stopPoll();
+    else if (screen === 'chat') startPoll();
+  }
+
+  /* ── event wiring ── */
+  launcher.addEventListener('click', toggle);
+  btnClose.addEventListener('click', toggle);
+  btnHome.addEventListener('click', () => goScreen('home'));
+  tabMsg.addEventListener('click', () => convId ? goScreen('chat') : goScreen('home'));
+  tabArt.addEventListener('click', () => goScreen('articles'));
+  cardMsg.addEventListener('click', openChat);
+  cardArt.addEventListener('click', () => goScreen('articles'));
+  btnSend.addEventListener('click', handleSend);
+
+  compose.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  });
+  compose.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+  });
+
+  /* ── boot ── */
+  loadSession();
+})();
+</script>
 
 </body>
 </html>
